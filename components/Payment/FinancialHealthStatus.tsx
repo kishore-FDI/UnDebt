@@ -3,51 +3,119 @@ interface FinancialHealthProps {
     monthlySalary: string;
     workExperience: string;
     occupation: string;
+    age: string;
   };
   loans: Array<{
     principalAmount: string;
     minimumPayment: string;
     interestRate: string;
+    loanDuration: string;
   }>;
 }
 
 export default function FinancialHealthStatus({ userDetails, loans }: FinancialHealthProps) {
-  // Calculate key financial metrics
+  // Financial Calculations
   const monthlyIncome = parseFloat(userDetails.monthlySalary);
   const annualIncome = monthlyIncome * 12;
   const totalDebt = loans.reduce((sum, loan) => sum + parseFloat(loan.principalAmount), 0);
   const monthlyDebtPayments = loans.reduce((sum, loan) => sum + parseFloat(loan.minimumPayment), 0);
-  
+  const age = parseInt(userDetails.age);
+  const workExp = parseInt(userDetails.workExperience);
+
+  // Age-based considerations
+  const retirementAge = 60;
+  const yearsToRetirement = Math.max(0, retirementAge - age);
+  const isNearRetirement = age > 50;
+  const isRetired = age >= retirementAge;
+
   // Calculate ratios
   const debtToIncomeRatio = (monthlyDebtPayments / monthlyIncome) * 100;
   const totalDebtToIncomeRatio = (totalDebt / annualIncome) * 100;
 
-  // Determine maximum additional loan amount
-  // Using 50-30-20 rule: 50% for needs (including debt), 30% discretionary, 20% savings
-  const maxMonthlyPayment = (monthlyIncome * 0.5) - monthlyDebtPayments;
-  const workExp = parseInt(userDetails.workExperience);
-  
-  // Calculate maximum loan eligibility
-  // Using a basic formula: (Max monthly payment * Loan term) / (1 + average interest rate)
-  const averageInterestRate = loans.reduce((sum, loan) => sum + parseFloat(loan.interestRate), 0) / loans.length || 10;
-  const maxLoanTerm = Math.min(workExp * 12, 360); // Max term based on work experience, capped at 30 years
-  const maxAdditionalLoan = (maxMonthlyPayment * maxLoanTerm) / (1 + (averageInterestRate / 100));
+  // Calculate maximum loan eligibility with age and debt considerations
+  const calculateMaxLoanAmount = () => {
+    // Base calculation
+    const maxMonthlyPayment = (monthlyIncome * 0.5) - monthlyDebtPayments;
+    
+    // Age factor (reduces eligible amount as age increases)
+    const ageFactor = Math.max(0, (retirementAge - age) / 35); // Normalized to 1 for young adults
+    
+    // Debt burden factor (reduces eligible amount as existing debt increases)
+    const debtBurdenFactor = Math.max(0, 1 - (totalDebtToIncomeRatio / 100));
+    
+    // Maximum loan term based on age
+    const maxTermYears = Math.min(yearsToRetirement, 30);
+    const maxTermMonths = maxTermYears * 12;
+    
+    // Average interest rate from existing loans or default
+    const averageInterestRate = loans.length > 0 
+      ? loans.reduce((sum, loan) => sum + parseFloat(loan.interestRate), 0) / loans.length 
+      : 10;
 
-  // Determine financial health status
+    // If near retirement or high debt, severely restrict or eliminate new loan eligibility
+    if (isRetired || totalDebtToIncomeRatio > 80) {
+      return 0;
+    }
+
+    if (isNearRetirement || totalDebtToIncomeRatio > 60) {
+      return maxMonthlyPayment * 12; // Only allow 1 year of payments worth of loans
+    }
+
+    // Calculate maximum loan amount with all factors
+    const maxLoan = (maxMonthlyPayment * maxTermMonths * ageFactor * debtBurdenFactor) / 
+      (1 + (averageInterestRate / 100));
+
+    return Math.max(0, maxLoan);
+  };
+
+  const maxAdditionalLoan = calculateMaxLoanAmount();
+
+  // Calculate financial health score with age considerations
+  const calculateHealthScore = () => {
+    let score = 100;
+
+    // Age-based deductions
+    if (isRetired) score -= 30;
+    else if (isNearRetirement) score -= 15;
+
+    // Debt-to-Income ratio deductions
+    if (debtToIncomeRatio > 50) score -= 30;
+    else if (debtToIncomeRatio > 40) score -= 20;
+    else if (debtToIncomeRatio > 30) score -= 10;
+
+    // Total Debt to Annual Income ratio deductions
+    if (totalDebtToIncomeRatio > 200) score -= 30;
+    else if (totalDebtToIncomeRatio > 150) score -= 20;
+    else if (totalDebtToIncomeRatio > 100) score -= 10;
+
+    // Work experience consideration
+    if (workExp < 2) score -= 15;
+
+    return Math.max(0, score);
+  };
+
+  const healthScore = calculateHealthScore();
+
+  // Get health status based on score and age
   const getHealthStatus = () => {
-    if (debtToIncomeRatio <= 30) return {
+    // Adjust thresholds based on age
+    const thresholds = isNearRetirement 
+      ? { excellent: 85, good: 70, fair: 50 }  // Stricter thresholds for older individuals
+      : { excellent: 80, good: 60, fair: 40 };  // Standard thresholds
+
+    if (healthScore >= thresholds.excellent) return {
       status: 'Excellent',
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
       borderColor: 'border-green-500/20'
     };
-    if (debtToIncomeRatio <= 40) return {
+    if (healthScore >= thresholds.good) return {
       status: 'Good',
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20'
     };
-    if (debtToIncomeRatio <= 50) return {
+    if (healthScore >= thresholds.fair) return {
       status: 'Fair',
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-500/10',
@@ -63,27 +131,34 @@ export default function FinancialHealthStatus({ userDetails, loans }: FinancialH
 
   const healthStatus = getHealthStatus();
 
-  // Loan eligibility criteria
-  const eligibilityCriteria = [
-    {
-      criterion: 'Debt-to-Income Ratio',
-      value: `${debtToIncomeRatio.toFixed(1)}%`,
-      target: '< 43%',
-      passed: debtToIncomeRatio < 43
-    },
-    {
-      criterion: 'Work Experience',
-      value: `${workExp} years`,
-      target: '> 2 years',
-      passed: workExp > 2
-    },
-    {
-      criterion: 'Monthly Income',
-      value: `₹${monthlyIncome.toLocaleString()}`,
-      target: '> ₹30,000',
-      passed: monthlyIncome > 30000
+  // Generate age-specific recommendations
+  const getRecommendations = () => {
+    const recommendations = [];
+
+    if (isRetired) {
+      recommendations.push("• Focus on managing existing debt rather than taking new loans");
+      recommendations.push("• Consider downsizing or debt consolidation options");
+    } else if (isNearRetirement) {
+      recommendations.push("• Prioritize debt reduction before retirement");
+      recommendations.push("• Avoid long-term loan commitments");
+      if (debtToIncomeRatio > 30) {
+        recommendations.push("• Consider accelerating debt payments to be debt-free by retirement");
+      }
+    } else {
+      if (debtToIncomeRatio > 43) {
+        recommendations.push("• Work on reducing current debt before considering new loans");
+      }
+      if (workExp <= 2) {
+        recommendations.push("• Build more work experience to improve loan terms");
+      }
+      if (monthlyIncome <= 30000) {
+        recommendations.push("• Focus on increasing income before taking on additional debt");
+      }
     }
-  ];
+
+    recommendations.push("• Maintain timely payments on existing loans");
+    return recommendations;
+  };
 
   return (
     <div className="space-y-6">
@@ -95,14 +170,26 @@ export default function FinancialHealthStatus({ userDetails, loans }: FinancialH
               Financial Health Status: {healthStatus.status}
             </h4>
             <p className="text-gray-400 text-sm mt-1">
-              Based on your income, debt, and employment history
+              Based on your age, income, debt, and employment history
             </p>
           </div>
           <div className={`${healthStatus.color} text-2xl font-bold`}>
-            {debtToIncomeRatio.toFixed(1)}%
+            {healthScore}/100
           </div>
         </div>
+
+        {/* Age Warning for Near-Retirement */}
+        {isNearRetirement && (
+          <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p className="text-yellow-400 text-sm">
+              ⚠️ Age Consideration: {isRetired ? 
+                "You are past retirement age. Focus on debt management rather than new loans." :
+                `You are ${yearsToRetirement} years from retirement. Consider this when taking on new debt.`}
+            </p>
+          </div>
+        )}
         
+        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="p-4 bg-white/5 rounded-lg">
             <p className="text-gray-400 text-sm">Monthly Income</p>
@@ -113,8 +200,8 @@ export default function FinancialHealthStatus({ userDetails, loans }: FinancialH
             <p className="text-white text-lg font-semibold">₹{totalDebt.toLocaleString()}</p>
           </div>
           <div className="p-4 bg-white/5 rounded-lg">
-            <p className="text-gray-400 text-sm">Monthly Debt Payments</p>
-            <p className="text-white text-lg font-semibold">₹{monthlyDebtPayments.toLocaleString()}</p>
+            <p className="text-gray-400 text-sm">Debt-to-Income Ratio</p>
+            <p className="text-white text-lg font-semibold">{debtToIncomeRatio.toFixed(1)}%</p>
           </div>
         </div>
       </div>
@@ -130,43 +217,17 @@ export default function FinancialHealthStatus({ userDetails, loans }: FinancialH
             ₹{Math.max(0, maxAdditionalLoan).toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </p>
           <p className="text-gray-400 text-sm mt-1">
-            Based on your income and current debt obligations
+            Based on your age, income, and current debt obligations
           </p>
-        </div>
-
-        {/* Eligibility Criteria */}
-        <div className="space-y-3">
-          <p className="text-white font-medium">Eligibility Criteria</p>
-          {eligibilityCriteria.map((criteria, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-              <div>
-                <p className="text-white">{criteria.criterion}</p>
-                <p className="text-gray-400 text-sm">Current: {criteria.value}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400 text-sm">Target: {criteria.target}</span>
-                <span className={criteria.passed ? 'text-green-400' : 'text-red-400'}>
-                  {criteria.passed ? '✓' : '✗'}
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* Recommendations */}
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <h5 className="text-blue-400 font-medium mb-2">Recommendations</h5>
           <ul className="text-gray-400 text-sm space-y-2">
-            {debtToIncomeRatio > 43 && (
-              <li>• Consider reducing existing debt before taking on new loans</li>
-            )}
-            {workExp <= 2 && (
-              <li>• Building more work experience will improve loan eligibility</li>
-            )}
-            {monthlyIncome <= 30000 && (
-              <li>• Increasing income through additional sources could improve eligibility</li>
-            )}
-            <li>• Maintain timely payments on existing loans to improve creditworthiness</li>
+            {getRecommendations().map((recommendation, index) => (
+              <li key={index}>{recommendation}</li>
+            ))}
           </ul>
         </div>
       </div>

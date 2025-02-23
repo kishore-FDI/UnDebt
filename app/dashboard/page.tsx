@@ -38,6 +38,7 @@ interface UserDetails {
   companyName: string;
   workExperience: string;
   numberOfLoans: string;
+  age:string;
   aadharNumber: string;
   panNumber: string;
 }

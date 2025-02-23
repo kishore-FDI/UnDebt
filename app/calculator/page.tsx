@@ -13,6 +13,7 @@ interface UserDetails {
   companyName: string;
   workExperience: string;
   numberOfLoans: string;
+  age: string;
   aadharNumber: string;
   panNumber: string;
 }
@@ -42,6 +43,7 @@ function CalculatorContent() {
     companyName: 'Tech Corp',
     workExperience: '5',
     numberOfLoans: '2',
+    age: '25',
     aadharNumber: '123456789012',
     panNumber: 'ABCDE1234F'
   };
@@ -131,6 +133,13 @@ function CalculatorContent() {
 
   // Update the validateForm function to check document numbers at user level
   const validateForm = (userDetails: UserDetails, loanForms: LoanForm[]) => {
+    const age = parseInt(userDetails.age);
+    
+    if (isNaN(age) || age < 18 || age > 100) {
+      alert('Age must be between 18 and 100 years');
+      return false;
+    }
+
     // Convert string values to numbers for comparison
     const salary = parseFloat(userDetails.monthlySalary);
     const experience = parseFloat(userDetails.workExperience);
@@ -210,6 +219,19 @@ function CalculatorContent() {
   const handleUserDetailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
+    // Age validation
+    if (name === 'age') {
+      const age = parseInt(value);
+      if (age < 18) {
+        alert('Age must be at least 18 years');
+        return;
+      }
+      if (age > 100) {
+        alert('Age cannot be more than 100 years');
+        return;
+      }
+    }
+
     // Validate number of loans
     if (name === 'numberOfLoans') {
       const numLoans = parseInt(value);
@@ -498,6 +520,21 @@ function CalculatorContent() {
                     className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10 text-white focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 mb-2">Age</label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={userDetails.age}
+                    onChange={handleUserDetailsChange}
+                    min="18"
+                    max="100"
+                    className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10 text-white focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Must be between 18 and 100 years</p>
                 </div>
 
                 {/* Document Numbers Section */}
