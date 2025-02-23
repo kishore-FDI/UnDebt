@@ -60,7 +60,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0A0118] overflow-hidden">
-      {/* <Navbar /> */}
+      <Navbar />
       
       {/* Background Elements - Adjusted for mobile */}
       <div className="fixed inset-0 opacity-30">
