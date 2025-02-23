@@ -18,6 +18,8 @@ import {
   Tooltip,
   XAxis, YAxis
 } from 'recharts';
+import PaymentSchedule from '../../components/Payment/PaymentSchedule';
+import FinancialHealthStatus from '../../components/Payment/FinancialHealthStatus';
 
 interface Loan {
   debtName: string;
@@ -132,6 +134,7 @@ function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const calculationId = searchParams.get('id');
+  const [selectedStrategy, setSelectedStrategy] = useState<'avalanche' | 'snowball' | 'hybrid'>('avalanche');
 
   useEffect(() => {
     const fetchCalculation = async () => {
@@ -661,53 +664,13 @@ function DashboardContent() {
 
             {/* New Visualizations Section */}
             <div className="grid grid-cols-1 md:grid-cols-1 gap-8 mb-8">
-              {/* Debt-to-Income Ratio - Updated colors */}
+              {/* Financial Health Status */}
               <div className="bg-white/[0.03] backdrop-blur-xl rounded-2xl p-8 border border-white/10">
-                <h3 className="text-xl font-semibold text-white mb-4">Debt-to-Income Ratio</h3>
-                {metrics && (
-                  <div className="relative pt-4">
-                    <div className="flex justify-between mb-2">
-                      <span className={metrics.debtToIncomeRatio <= 30 ? 'text-green-400 font-semibold' : 'text-gray-400'}>Good</span>
-                      <span className={metrics.debtToIncomeRatio > 30 && metrics.debtToIncomeRatio <= 40 ? 'text-yellow-400 font-semibold' : 'text-gray-400'}>Warning</span>
-                      <span className={metrics.debtToIncomeRatio > 40 ? 'text-red-400 font-semibold' : 'text-gray-400'}>Critical</span>
-                    </div>
-                    <div className="h-4 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full transition-all duration-500 rounded-full"
-                        style={{ 
-                          width: `${Math.min(metrics.debtToIncomeRatio, 100)}%`,
-                          backgroundColor: metrics.debtToIncomeRatio > 40 ? '#ef4444' :
-                                          metrics.debtToIncomeRatio > 30 ? '#eab308' : '#22c55e',
-                          boxShadow: `0 0 20px ${
-                            metrics.debtToIncomeRatio > 40 ? 'rgba(239, 68, 68, 0.5)' :
-                            metrics.debtToIncomeRatio > 30 ? 'rgba(234, 179, 8, 0.5)' : 'rgba(34, 197, 94, 0.5)'
-                          }`
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-gray-400">
-                      <span>0%</span>
-                      <span>30%</span>
-                      <span>40%</span>
-                      <span>100%</span>
-                    </div>
-                    <div className="mt-6 text-center">
-                      <p className="text-4xl font-bold" style={{
-                        color: metrics.debtToIncomeRatio > 40 ? '#ef4444' :
-                               metrics.debtToIncomeRatio > 30 ? '#eab308' : '#22c55e'
-                      }}>
-                        {metrics.debtToIncomeRatio.toFixed(1)}%
-                      </p>
-                      <p className="mt-2" style={{
-                        color: metrics.debtToIncomeRatio > 40 ? '#fca5a5' :
-                               metrics.debtToIncomeRatio > 30 ? '#fde047' : '#86efac'
-                      }}>
-                        {metrics.debtToIncomeRatio > 40 ? 'High Risk - Consider debt consolidation' :
-                         metrics.debtToIncomeRatio > 30 ? 'Moderate Risk - Monitor spending' : 'Healthy - Keep it up!'}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <h3 className="text-xl font-semibold text-white mb-4">Financial Health Analysis</h3>
+                <FinancialHealthStatus 
+                  userDetails={calculationData.userDetails}
+                  loans={calculationData.loans}
+                />
               </div>
 
               {/* Monthly Payment Distribution - New Bar Graph */}
@@ -1048,6 +1011,49 @@ function DashboardContent() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Payment Schedule Section */}
+            <div className="bg-white/[0.03] backdrop-blur-xl rounded-2xl p-8 border border-white/10 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Recommended Payment Plan</h3>
+                <select 
+                  className="bg-white/[0.05] border border-white/10 rounded-lg px-4 py-2 text-white"
+                  onChange={(e) => setSelectedStrategy(e.target.value as 'avalanche' | 'snowball' | 'hybrid')}
+                  value={selectedStrategy}
+                >
+                  <option value="avalanche">Avalanche Method</option>
+                  <option value="snowball">Snowball Method</option>
+                  <option value="hybrid">Hybrid Method</option>
+                </select>
+              </div>
+
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-blue-400 mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-blue-400 font-medium mb-1">Payment Strategy Details</h4>
+                    <p className="text-gray-400 text-sm">
+                      {selectedStrategy === 'avalanche' && 
+                        "The Avalanche method prioritizes high-interest debts first, minimizing the total interest paid over time."}
+                      {selectedStrategy === 'snowball' && 
+                        "The Snowball method focuses on paying off smaller debts first, helping build momentum through quick wins."}
+                      {selectedStrategy === 'hybrid' && 
+                        "The Hybrid method balances both interest rates and loan sizes to optimize debt repayment."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <PaymentSchedule 
+                loans={calculationData.loans}
+                strategy={selectedStrategy}
+                monthlyBudget={monthlyBudget}
+              />
             </div>
 
             {/* Loans Section */}

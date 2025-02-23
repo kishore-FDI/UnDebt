@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
+    "date-fns": "^4.1.0",
     "gsap": "^3.12.7",
     "mongodb": "^6.13.1",
     "next": "15.1.6",
