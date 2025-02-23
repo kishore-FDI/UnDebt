@@ -8,7 +8,7 @@ import gsap from 'gsap';
 export default function Navbar() {
   const { data: session } = useSession();
   const navRef = useRef(null);
-  const logoRef = useRef(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
   const profileRef = useRef(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   console.log(session)
@@ -32,19 +32,21 @@ export default function Navbar() {
     );
 
     // Hover animation for logo
-    logoRef.current.addEventListener('mouseenter', () => {
-      gsap.to(logoRef.current, {
-        scale: 1.05,
-        duration: 0.3
+    if (logoRef.current) {
+      logoRef.current.addEventListener('mouseenter', () => {
+        gsap.to(logoRef.current, {
+          scale: 1.05,
+          duration: 0.3
+        });
       });
-    });
 
-    logoRef.current?.addEventListener('mouseleave', () => {
-      gsap.to(logoRef.current, {
-        scale: 1,
-        duration: 0.3
+      logoRef.current.addEventListener('mouseleave', () => {
+        gsap.to(logoRef.current, {
+          scale: 1,
+          duration: 0.3
+        });
       });
-    });
+    }
   }, []);
 
   const toggleMenu = () => {

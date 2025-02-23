@@ -11,7 +11,7 @@ export default function HomePage() {
   const heroRef = useRef(null);
   const titleRef = useRef(null);
   const descRef = useRef(null);
-  const cardsRef = useRef([]);
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const ctaRef = useRef(null);
   const orbRef = useRef(null);
 
@@ -114,7 +114,9 @@ export default function HomePage() {
             ].map((feature, index) => (
               <div
                 key={index}
-                ref={el => cardsRef.current[index] = el}
+                ref={(el) => {
+                  if (cardsRef.current) cardsRef.current[index] = el;
+                }}
                 className={`p-6 md:p-8 bg-white/[0.03] backdrop-blur-xl rounded-xl md:rounded-2xl transform ${feature.rotate} hover:-translate-y-2 transition-all duration-300 border border-white/10 hover:border-purple-500/50`}
               >
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">
