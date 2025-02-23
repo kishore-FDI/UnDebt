@@ -4,10 +4,10 @@ import { ObjectId } from 'mongodb';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const id = await params?.id;
+    const id = context.params.id;
 
     if (!id) {
       return NextResponse.json(
