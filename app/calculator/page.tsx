@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import gsap from 'gsap';
 import Navbar from '@/components/Navbar/Navbar';
 import Image from 'next/image';
@@ -28,7 +28,8 @@ interface LoanForm {
   id?: string;
 }
 
-export default function CalculatorPage() {
+// Create a wrapper component for the search params functionality
+function CalculatorContent() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(true);
@@ -718,6 +719,22 @@ export default function CalculatorPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+// Main component with Suspense
+export default function CalculatorPage() {
+  return (
+    <div className="min-h-screen bg-[#0A0118]">
+      <Navbar />
+      <Suspense fallback={
+        <div className="container mx-auto px-4 pt-32">
+          <div className="text-white text-center">Loading...</div>
+        </div>
+      }>
+        <CalculatorContent />
+      </Suspense>
     </div>
   );
 }
