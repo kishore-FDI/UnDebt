@@ -1096,7 +1096,6 @@ function DashboardContent() {
   );
 }
 
-// Main Dashboard component with Suspense
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#0A0118]">
