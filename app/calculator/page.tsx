@@ -3,7 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import Navbar from '@/components/Navbar/Navbar';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from "next-auth/react";
 
 interface UserDetails {
   fullName: string;
@@ -28,20 +29,23 @@ interface LoanForm {
 }
 
 export default function CalculatorPage() {
-  // Update initial user details with sample data
-  const [userDetails, setUserDetails] = useState<UserDetails>({
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Default values moved to a constant
+  const DEFAULT_USER_DETAILS: UserDetails = {
     fullName: 'John Doe',
     occupation: 'Software Engineer',
     monthlySalary: '150000',
     companyName: 'Tech Corp',
     workExperience: '5',
-    numberOfLoans: '2', // Set to 2 loans for testing
+    numberOfLoans: '2',
     aadharNumber: '123456789012',
     panNumber: 'ABCDE1234F'
-  });
+  };
 
-  // Update initial loan forms with sample data
-  const [loanForms, setLoanForms] = useState<LoanForm[]>([
+  const DEFAULT_LOAN_FORMS: LoanForm[] = [
     {
       debtName: 'Personal Loan',
       principalAmount: '50000',
@@ -60,7 +64,10 @@ export default function CalculatorPage() {
       loanType: 'car',
       paymentDueDate: '15',
     }
-  ]);
+  ];
+
+  const [userDetails, setUserDetails] = useState<UserDetails>(DEFAULT_USER_DETAILS);
+  const [loanForms, setLoanForms] = useState<LoanForm[]>(DEFAULT_LOAN_FORMS);
 
   const titleRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -68,6 +75,33 @@ export default function CalculatorPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!session?.user?.email) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/data?email=${encodeURIComponent(session.user.email)}`);
+        const data = await response.json();
+        
+        if (data.exists) {
+          setUserDetails(data.data.userDetails);
+          setLoanForms(data.data.loans);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setUserDetails(DEFAULT_USER_DETAILS);
+        setLoanForms(DEFAULT_LOAN_FORMS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [session]); // Run when session changes
 
   useEffect(() => {
     // Animations
@@ -302,6 +336,12 @@ export default function CalculatorPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Check if user is authenticated
+    if (!session?.user?.email) {
+      alert('Please sign in to save your calculation');
+      return;
+    }
+
     // Validate form before submission
     if (!validateForm(userDetails, loanForms)) {
       return;
@@ -314,7 +354,10 @@ export default function CalculatorPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userDetails,
+          userDetails: {
+            ...userDetails,
+            email: session.user.email, // Use email from session
+          },
           loans: loanForms
         })
       });
@@ -336,6 +379,15 @@ export default function CalculatorPage() {
   const deleteLoan = (loanId: string) => {
     setLoanForms(prevLoans => prevLoans.filter(loan => loan.id || ''));
   };
+
+  // Add loading state to your UI
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0118] flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0118] overflow-hidden">

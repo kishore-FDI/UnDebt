@@ -16,23 +16,46 @@ export async function POST(request: NextRequest) {
 
     // Connect to MongoDB
     const client = await clientPromise;
-    const db = client.db("debt-calculator"); // Your database name
+    const db = client.db("debt-calculator");
     
-    // Create a new document with timestamp
+    // Check if a document with the same email already exists
+    const existingEntry = await db.collection('calculations').findOne({
+      'userDetails.email': data.userDetails.email
+    });
+
+    let result;
     const calculatorEntry = {
       ...data,
-      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    // Insert the document into the 'calculations' collection
-    const result = await db.collection('calculations').insertOne(calculatorEntry);
+    if (existingEntry) {
+      // Update existing document
+      result = await db.collection('calculations').updateOne(
+        { 'userDetails.email': data.userDetails.email },
+        { 
+          $set: calculatorEntry
+        }
+      );
 
-    // Return success response with the inserted document's ID
-    return NextResponse.json({ 
-      message: 'Data saved successfully',
-      calculationId: result.insertedId,
-      data: calculatorEntry
-    });
+      return NextResponse.json({ 
+        message: 'Data updated successfully',
+        calculationId: existingEntry._id,
+        data: calculatorEntry
+      });
+    } else {
+      // Create new document with creation timestamp
+      calculatorEntry.createdAt = new Date();
+      
+      // Insert new document
+      result = await db.collection('calculations').insertOne(calculatorEntry);
+
+      return NextResponse.json({ 
+        message: 'Data saved successfully',
+        calculationId: result.insertedId,
+        data: calculatorEntry
+      });
+    }
 
   } catch (error) {
     console.error('Error processing calculator data:', error);
@@ -47,16 +70,37 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID is required' },
-        { status: 400 }
-      );
-    }
+    const email = searchParams.get('email');
 
     const client = await clientPromise;
     const db = client.db("debt-calculator");
+
+    // If email is provided, fetch by email
+    if (email) {
+      const calculation = await db.collection('calculations').findOne({
+        'userDetails.email': email
+      });
+
+      if (!calculation) {
+        return NextResponse.json(
+          { exists: false },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        exists: true,
+        data: calculation
+      });
+    }
+
+    // Existing ID-based fetch logic
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID or email is required' },
+        { status: 400 }
+      );
+    }
 
     const calculation = await db.collection('calculations').findOne({
       _id: new ObjectId(id)
