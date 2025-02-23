@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +38,42 @@ export async function POST(request: NextRequest) {
     console.error('Error processing calculator data:', error);
     return NextResponse.json(
       { error: 'Failed to process data' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db("debt-calculator");
+
+    const calculation = await db.collection('calculations').findOne({
+      _id: new ObjectId(id)
+    });
+
+    if (!calculation) {
+      return NextResponse.json(
+        { error: 'Calculation not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(calculation);
+  } catch (error) {
+    console.error('Error fetching calculation:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch calculation' },
       { status: 500 }
     );
   }

@@ -136,7 +136,7 @@ function DashboardContent() {
   useEffect(() => {
     const fetchCalculation = async () => {
       try {
-        const response = await fetch(`/api/data/${calculationId}`);
+        const response = await fetch(`/api/data?id=${calculationId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch calculation data');
         }
