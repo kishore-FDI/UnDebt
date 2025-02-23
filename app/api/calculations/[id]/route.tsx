@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { NextRequest } from 'next/server';
 
-interface RouteParams {
-  params: { id: string }
-}
-
-export async function GET(_: unknown, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const { id } = params;
     
