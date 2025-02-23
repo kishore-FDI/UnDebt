@@ -308,7 +308,7 @@ export default function CalculatorPage() {
     }
 
     try {
-      const response = await fetch('/api/calc', {
+      const response = await fetch('/api/data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
