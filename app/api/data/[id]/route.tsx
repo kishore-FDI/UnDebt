@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { NextRequest } from 'next/server';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function GET(request:any, context:any) {
   try {
-    const id = context.params.id;
+    const { id } = context.params;
 
     if (!id) {
       return NextResponse.json(
